@@ -41,4 +41,4 @@ export class ConfigService extends Effect.Service<ConfigService>()(
       } as const;
     }),
   },
-) { }
+) {}

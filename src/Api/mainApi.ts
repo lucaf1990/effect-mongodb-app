@@ -1,5 +1,5 @@
 import { HttpApi, OpenApi } from "@effect/platform";
-import { AccountApi } from "./api.js";
+import { AccountApi } from "../Account/api/api.js";
 
 export class MainServiceApi extends HttpApi.make("MainServiceApi")
   .add(AccountApi)
@@ -8,14 +8,5 @@ export class MainServiceApi extends HttpApi.make("MainServiceApi")
       title: "Effect TS Backend",
       description: `Effect TS Backend Api`,
       identifier: "Api",
-      transform: (openApiSpec) => {
-        const newPaths = Object.fromEntries(
-          Object.entries(openApiSpec.paths).filter(([path]) => path !== "/"),
-        );
-        return {
-          ...openApiSpec,
-          paths: newPaths,
-        };
-      },
     }),
   ) { }

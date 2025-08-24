@@ -46,4 +46,4 @@ export class AccountVerificationRepository extends Effect.Service<AccountVerific
     }),
     dependencies: [DatabaseService.Default],
   },
-) { }
+) {}

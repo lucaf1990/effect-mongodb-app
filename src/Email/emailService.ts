@@ -87,4 +87,4 @@ export class EmailService extends Effect.Service<EmailService>()(
     }),
     dependencies: [ConfigService.Default],
   },
-) { }
+) {}

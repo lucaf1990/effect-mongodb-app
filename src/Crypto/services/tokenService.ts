@@ -104,4 +104,4 @@ export class TokenService extends Effect.Service<TokenService>()(
     }),
     dependencies: [ConfigService.Default],
   },
-) { }
+) {}

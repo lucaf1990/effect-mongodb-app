@@ -10,7 +10,7 @@ import { NodeHttpServer, NodeRuntime, NodeSocket } from "@effect/platform-node";
 import "dotenv/config";
 import { Console, Effect, Layer } from "effect";
 import { createServer } from "http";
-import { MainServiceApiLive } from "./Account/api/mainApiLive.js";
+import { MainServiceApiLive } from "./Api/mainApiLive.js";
 import { ConfigService } from "./Configuration/configurationService.js";
 
 const server = HttpApiBuilder.serve(HttpMiddleware.logger)

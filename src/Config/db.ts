@@ -19,4 +19,4 @@ export class DatabaseService extends Effect.Service<DatabaseService>()(
     }),
     dependencies: [],
   },
-) { }
+) {}

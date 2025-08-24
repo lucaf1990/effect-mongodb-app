@@ -28,14 +28,10 @@ import { SignIn } from "../schemas/signIn.js";
 import { SignUp } from "../schemas/signUp.js";
 import { ObjectId } from "mongodb";
 
-export const AccountIdFromString = Schema.transform(
-  Schema.String,
-  AccountId,
-  {
-    decode: (str) => new ObjectId(str) as AccountId,
-    encode: (accountId) => accountId.toString(),
-  },
-).pipe(
+export const AccountIdFromString = Schema.transform(Schema.String, AccountId, {
+  decode: (str) => new ObjectId(str) as AccountId,
+  encode: (accountId) => accountId.toString(),
+}).pipe(
   Schema.annotations({
     identifier: "AccountIdFromString",
     description: "Account ID from URL parameter",
@@ -282,4 +278,4 @@ export class AccountApi extends HttpApiGroup.make("people")
     OpenApi.annotations({
       title: "Account API",
     }),
-  ) { }
+  ) {}

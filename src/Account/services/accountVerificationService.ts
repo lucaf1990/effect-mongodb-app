@@ -68,4 +68,4 @@ export class AccountVerificationService extends Effect.Service<AccountVerificati
       DatabaseService.Default,
     ],
   },
-) { }
+) {}

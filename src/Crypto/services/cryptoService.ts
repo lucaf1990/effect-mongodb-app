@@ -53,4 +53,4 @@ export class CryptoService extends Effect.Service<CryptoService>()(
     }),
     dependencies: [NodeContext.layer],
   },
-) { }
+) {}

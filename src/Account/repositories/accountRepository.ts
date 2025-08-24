@@ -23,7 +23,7 @@ export class AccountRepository extends Effect.Service<AccountRepository>()(
       const findById = (_id: ObjectId) =>
         Effect.gen(function* () {
           const result = yield* Collection.findOne(sourceCollection, { _id });
-          console.log("result:", result);
+
           return result ? result : Option.none();
         }).pipe(Effect.orDie, Effect.withSpan("AccountRepository.findById"));
 
@@ -105,4 +105,4 @@ export class AccountRepository extends Effect.Service<AccountRepository>()(
     }),
     dependencies: [DatabaseService.Default],
   },
-) { }
+) {}

@@ -12,13 +12,10 @@ export class AccountPolicy extends Effect.Service<AccountPolicy>()(
 
       const canUpdate = (toUpdate: AccountId) =>
         policy("account", "update", (actor) => {
-          console.log(
-            `Checking update permissions for ${actor._id} on ${toUpdate}`,
-          );
           return Effect.succeed(
             actor._id?.toString() === toUpdate.toString() ||
-            actor.role === "admin" ||
-            actor.role === "moderator",
+              actor.role === "admin" ||
+              actor.role === "moderator",
           );
         });
 
@@ -52,7 +49,7 @@ export class AccountPolicy extends Effect.Service<AccountPolicy>()(
         policy("account", "readSensitive", (actor) =>
           Effect.succeed(
             actor._id?.toString() === toRead.toString() ||
-            actor.role === "admin",
+              actor.role === "admin",
           ),
         );
 
@@ -64,4 +61,4 @@ export class AccountPolicy extends Effect.Service<AccountPolicy>()(
     }),
     dependencies: [AccountRepository.Default],
   },
-) { }
+) {}

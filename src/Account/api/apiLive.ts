@@ -1,8 +1,11 @@
 import { HttpApiBuilder } from "@effect/platform";
 import { Effect, Layer } from "effect";
 import { AuthenticationLive } from "../../Authentication/authentication.js";
-import { policyUse, withSystemActor } from "../../Authentication/authorization.js";
-import { MainServiceApi } from "./mainApi.js";
+import {
+  policyUse,
+  withSystemActor,
+} from "../../Authentication/authorization.js";
+import { MainServiceApi } from "../../Api/mainApi.js";
 import { AccountPolicy } from "../policies/accountPolicy.js";
 import { AccountService } from "../services/accountService.js"; // Your existing service
 import { CurrentAccount } from "../schemas/account.js";
@@ -31,8 +34,6 @@ export const AccountApiLive = HttpApiBuilder.group(
           accountService.findAccountById(path.accountId),
         )
         .handle("updateById", ({ path, payload }) => {
-          console.log("Updating account with payload:", payload);
-          console.log("Updating account with ID:", path.accountId);
           return accountService
             .updateAccountById(path.accountId, payload)
             .pipe(policyUse(accountPolicy.canUpdate(path.accountId)));

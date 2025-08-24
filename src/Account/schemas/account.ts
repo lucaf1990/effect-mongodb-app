@@ -36,7 +36,7 @@ export const Account = S.Struct({
 export class CurrentAccount extends Context.Tag("CurrentAccount")<
   CurrentAccount,
   Account
->() { }
+>() {}
 
 export type AccountVerification = typeof AccountVerification.Type;
 export const AccountVerification = S.Struct({

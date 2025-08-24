@@ -14,7 +14,7 @@ export class Authentication extends HttpApiMiddleware.Tag<Authentication>()(
       bearerHeader: HttpApiSecurity.bearer,
     },
   },
-) { }
+) {}
 
 export const AuthenticationLive = Layer.effect(
   Authentication,

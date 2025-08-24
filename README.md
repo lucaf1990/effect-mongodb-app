@@ -56,32 +56,35 @@ src/
 ## 📦 Installation
 
 1. **Clone the repository:**
+
    ```bash
    git clone <repository-url>
    cd effect-mongodb-app
    ```
 
 2. **Install dependencies:**
+
    ```bash
    npm install
    ```
 
 3. **Set up environment variables:**
    Create a `.env` file in the root directory:
+
    ```env
    # Database
    MONGODB_URI=mongodb://localhost:27017/your-database
-   
+
    # JWT Secrets
    JWT_ACCESS_SECRET=your-access-token-secret
    JWT_REFRESH_SECRET=your-refresh-token-secret
-   
+
    # Email Configuration
    EMAIL_HOST=smtp.gmail.com
    EMAIL_PORT=587
    EMAIL_USER=your-email@gmail.com
    EMAIL_PASS=your-app-password
-   
+
    # App Configuration
    PORT=3000
    NODE_ENV=development

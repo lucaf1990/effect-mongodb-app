@@ -29,16 +29,14 @@ export const policy = <Entity extends string, Action extends string, E, R>(
   cause?: string,
 ) =>
   Effect.flatMap(CurrentAccount, (actor) => {
-
-
     return Effect.flatMap(f(actor), (can) =>
       can
         ? Effect.succeed(
-          authorizedActor(actor) as AuthorizedActor<Entity, Action>,
-        )
+            authorizedActor(actor) as AuthorizedActor<Entity, Action>,
+          )
         : Effect.fail(
-          new Forbidden({ accountId: actor._id, entity, action, cause }),
-        ),
+            new Forbidden({ accountId: actor._id, entity, action, cause }),
+          ),
     );
   });
 
@@ -46,33 +44,33 @@ export const policyCompose =
   <E1 extends string, A1 extends string, E, R>(
     that: Effect.Effect<AuthorizedActor<E1, A1>, E, R>,
   ) =>
-    <E2 extends string, A2 extends string, E2Err, R2>(
-      self: Effect.Effect<AuthorizedActor<E2, A2>, E2Err, R2>,
-    ): Effect.Effect<
-      AuthorizedActor<E1, A1> | AuthorizedActor<E2, A2>,
-      E | Forbidden,
-      R | CurrentAccount
-    > =>
-      Effect.zipRight(self, that) as any;
+  <E2 extends string, A2 extends string, E2Err, R2>(
+    self: Effect.Effect<AuthorizedActor<E2, A2>, E2Err, R2>,
+  ): Effect.Effect<
+    AuthorizedActor<E1, A1> | AuthorizedActor<E2, A2>,
+    E | Forbidden,
+    R | CurrentAccount
+  > =>
+    Effect.zipRight(self, that) as any;
 
 export const policyUse =
   <E1 extends string, A1 extends string, E, R>(
     policy: Effect.Effect<AuthorizedActor<E1, A1>, E, R>,
   ) =>
-    <A, E2, R2>(
-      effect: Effect.Effect<A, E2, R2>,
-    ): Effect.Effect<A, E | E2, Exclude<R2, AuthorizedActor<E1, A1>> | R> =>
-      Effect.zipRight(policy, effect) as any;
+  <A, E2, R2>(
+    effect: Effect.Effect<A, E2, R2>,
+  ): Effect.Effect<A, E | E2, Exclude<R2, AuthorizedActor<E1, A1>> | R> =>
+    Effect.zipRight(policy, effect) as any;
 
 export const policyRequire =
   <Entity extends string, Action extends string>(
     _entity: Entity,
     _action: Action,
   ) =>
-    <A, E, R>(
-      effect: Effect.Effect<A, E, R>,
-    ): Effect.Effect<A, E, R | AuthorizedActor<Entity, Action>> =>
-      effect;
+  <A, E, R>(
+    effect: Effect.Effect<A, E, R>,
+  ): Effect.Effect<A, E, R | AuthorizedActor<Entity, Action>> =>
+    effect;
 
 export const withSystemActor = <A, E, R>(
   effect: Effect.Effect<A, E, R>,

@@ -12,7 +12,7 @@ export class AccountNotFound extends S.TaggedError<AccountNotFound>()(
     title: "Account Not Found",
     description: "The account corresponding to the ID does not exist.",
   }),
-) { }
+) {}
 
 export class AccountByEmailNotFound extends S.TaggedError<AccountByEmailNotFound>()(
   "AccountByEmailNotFound",
@@ -22,7 +22,7 @@ export class AccountByEmailNotFound extends S.TaggedError<AccountByEmailNotFound
     title: "Account Not Found",
     description: "The account corresponding to the email does not exist.",
   }),
-) { }
+) {}
 
 export class AccountAlreadyExists extends S.TaggedError<AccountAlreadyExists>()(
   "AccountAlreadyExists",
@@ -32,7 +32,7 @@ export class AccountAlreadyExists extends S.TaggedError<AccountAlreadyExists>()(
     title: "Account Already Exists",
     description: "The account already exists.",
   }),
-) { }
+) {}
 
 export class InvalidPassword extends S.TaggedError<InvalidPassword>()(
   "InvalidPassword",
@@ -42,7 +42,7 @@ export class InvalidPassword extends S.TaggedError<InvalidPassword>()(
     title: "Invalid Password",
     description: "The password is incorrect or the account does not exist.",
   }),
-) { }
+) {}
 
 export class EmailNotVerifiedError extends S.TaggedError<EmailNotVerifiedError>()(
   "EmailNotVerifiedError",

@@ -17,10 +17,6 @@ export const SignUp = S.Struct({
   ),
 }).pipe(
   S.filter((input) => {
-    console.log(
-      Redacted.value(input.password),
-      Redacted.value(input.confirmPassword),
-    );
     if (
       Redacted.value(input.password) !== Redacted.value(input.confirmPassword)
     ) {
