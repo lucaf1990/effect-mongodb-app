@@ -48,8 +48,22 @@ export class AccountPolicy extends Effect.Service<AccountPolicy>()(
       const canReadSensitive = (toRead: AccountId) =>
         policy("account", "readSensitive", (actor) =>
           Effect.succeed(
-            actor._id?.toString() === toRead.toString() ||
+            actor._id.toString() === toRead.toString() ||
               actor.role === "admin",
+          ),
+        );
+
+      const canReadAllAccounts = () =>
+        policy("account", "readAll", (actor) =>
+          Effect.succeed(actor.role === "admin" || actor.role === "moderator"),
+        );
+
+      const canDeleteAccount = (toDelete: AccountId) =>
+        policy("account", "delete", (actor) =>
+          Effect.succeed(
+            actor._id.toString() === toDelete.toString() ||
+              actor.role === "admin" ||
+              actor.role === "moderator",
           ),
         );
 
@@ -57,6 +71,8 @@ export class AccountPolicy extends Effect.Service<AccountPolicy>()(
         canUpdate,
         canRead,
         canReadSensitive,
+        canReadAllAccounts,
+        canDeleteAccount,
       } as const;
     }),
     dependencies: [AccountRepository.Default],

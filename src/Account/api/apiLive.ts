@@ -31,7 +31,9 @@ export const AccountApiLive = HttpApiBuilder.group(
           accountService.signIn(payload).pipe(withSystemActor),
         )
         .handle("findById", ({ path }) =>
-          accountService.findAccountById(path.accountId),
+          accountService
+            .findAccountById(path.accountId)
+            .pipe(policyUse(accountPolicy.canRead(path.accountId))),
         )
         .handle("updateById", ({ path, payload }) => {
           return accountService
@@ -50,7 +52,12 @@ export const AccountApiLive = HttpApiBuilder.group(
         .handle("getAllAccounts", ({ urlParams }) =>
           accountService
             .getAllAccounts(urlParams.accountId)
-            .pipe(policyUse(accountPolicy.canRead(urlParams.accountId))),
+            .pipe(policyUse(accountPolicy.canReadAllAccounts())),
+        )
+        .handle("delete", ({ path }) =>
+          accountService
+            .deleteAccount(path.accountId)
+            .pipe(policyUse(accountPolicy.canDeleteAccount(path.accountId))),
         );
     }),
 ).pipe(

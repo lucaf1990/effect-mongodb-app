@@ -57,10 +57,14 @@ export class AccountVerificationService extends Effect.Service<AccountVerificati
           }),
         );
 
+      const deleteVerificationCodes = () =>
+        accountVerificationRepo.deleteVerificationCodes();
+
       return {
         insert,
         findAccountVerificationByEmail,
         updateByEmail,
+        deleteVerificationCodes,
       } as const;
     }),
     dependencies: [

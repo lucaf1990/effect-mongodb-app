@@ -38,10 +38,20 @@ export class AccountVerificationRepository extends Effect.Service<AccountVerific
             attributes: { email, data },
           }),
         );
+
+      const deleteVerificationCodes = () =>
+        Collection.deleteMany(collection, { isVerified: true }).pipe(
+          Effect.orDie,
+          Effect.withSpan(
+            "AccountVerificationRepository.deleteUsedVerificationCodes",
+          ),
+        );
+
       return {
         insert,
         findByEmail,
         updateByEmail,
+        deleteVerificationCodes,
       } as const;
     }),
     dependencies: [DatabaseService.Default],

@@ -1,9 +1,9 @@
 import { Effect, Option, pipe } from "effect";
 import { Collection, Db, FindCursor } from "effect-mongodb";
-import { ObjectId } from "mongodb";
 import { DatabaseService } from "../../Config/db.js";
 import { Account, AccountId } from "../schemas/account.js";
 import { AccountNotFound } from "../schemas/accountErrors.js";
+import { Email } from "../../Schemas/Common/email.js";
 
 export class AccountRepository extends Effect.Service<AccountRepository>()(
   "AccountRepository",
@@ -11,20 +11,22 @@ export class AccountRepository extends Effect.Service<AccountRepository>()(
     effect: Effect.gen(function* () {
       const { db } = yield* DatabaseService;
 
-      const sourceCollection = Db.collection(db, "people", Account);
-      const destinationCollection = Db.collection(db, "people_backup", Account);
+      const sourceCollection = Db.collection(db, "account", Account);
+      const destinationCollection = Db.collection(
+        db,
+        "account_backup",
+        Account,
+      );
 
-      const insertOne = (account: Omit<Account, "_id">) =>
+      const insertOne = (account: Account) =>
         Effect.gen(function* () {
-          const result = yield* Collection.insertOne(sourceCollection, account);
-          return { ...account, _id: result.insertedId } as Account;
-        }).pipe(Effect.orDie, Effect.withSpan("AccountRepository.insertOne"));
+          yield* Collection.insertOne(sourceCollection, account);
+          return account;
+        }).pipe(Effect.withSpan("AccountRepository.insertOne"));
 
-      const findById = (_id: ObjectId) =>
+      const findById = (_id: AccountId) =>
         Effect.gen(function* () {
-          const result = yield* Collection.findOne(sourceCollection, { _id });
-
-          return result ? result : Option.none();
+          return yield* Collection.findOne(sourceCollection, { _id });
         }).pipe(Effect.orDie, Effect.withSpan("AccountRepository.findById"));
 
       const getAllAccounts = () =>
@@ -36,36 +38,34 @@ export class AccountRepository extends Effect.Service<AccountRepository>()(
           Effect.withSpan("AccountRepository.getAllAccounts"),
         );
 
-      const updateByEmail = (email: string, update: Partial<Account>) =>
+      const updateByEmail = (email: Email, update: Partial<Account>) =>
         Effect.gen(function* () {
           const result = yield* Collection.updateMany(
             sourceCollection,
             { email },
-            [{ $set: { ...update, updatedAt: new Date().toISOString() } }],
+            [{ $set: { ...update } }],
           );
           return result.modifiedCount > 0;
         }).pipe(Effect.withSpan("AccountRepository.updateByEmail"));
 
-      const findByEmail = (email: string) =>
+      const findByEmail = (email: Email) =>
         Effect.gen(function* () {
-          const result = yield* Collection.findOne(sourceCollection, { email });
-          return result ? result : Option.none();
+          return yield* Collection.findOne(sourceCollection, { email });
         }).pipe(Effect.orDie, Effect.withSpan("AccountRepository.findByEmail"));
 
-      const updateById = (_id: ObjectId, update: Partial<Account>) =>
+      const updateById = (_id: AccountId, update: Partial<Account>) =>
         Effect.gen(function* () {
           const result = yield* Collection.updateMany(
             sourceCollection,
             { _id },
-            [{ $set: { ...update, updatedAt: new Date().toISOString() } }],
+            [{ $set: { ...update } }],
           );
           return result.modifiedCount > 0;
         }).pipe(Effect.orDie, Effect.withSpan("AccountRepository.updateById"));
 
-      const deleteById = (_id: ObjectId) =>
+      const deleteById = (_id: AccountId) =>
         Effect.gen(function* () {
-          const result = yield* Collection.deleteOne(sourceCollection, { _id });
-          return result.deletedCount > 0;
+          return yield* Collection.deleteOne(sourceCollection, { _id });
         });
 
       const clearAll = () =>
@@ -76,11 +76,11 @@ export class AccountRepository extends Effect.Service<AccountRepository>()(
 
       const with_ = <A, E, R>(
         _id: AccountId,
-        f: (person: Account) => Effect.Effect<A, E, R>,
+        f: (account: Account) => Effect.Effect<A, E, R>,
       ): Effect.Effect<A, E | AccountNotFound, R> => {
         return pipe(
-          Effect.try(() => new ObjectId(_id)),
-          Effect.flatMap((objectId) => findById(objectId)),
+          Effect.succeed(_id),
+          Effect.flatMap(() => findById(_id)),
           Effect.flatMap(
             Option.match({
               onNone: () => Effect.fail(new AccountNotFound()),
