@@ -11,7 +11,7 @@ import { Email } from "../../Schemas/Common/email.js";
 import { renderTemplate } from "../../Templates/Utils.js";
 import { AccountRepository } from "../repositories/accountRepository.js";
 import { AccountVerificationService } from "./accountVerificationService.js";
-import type { AccountId } from "../schemas/account.js";
+import { AccountId } from "../schemas/account.js";
 import { Account } from "../schemas/account.js";
 import {
   AccountAlreadyExists,
@@ -22,6 +22,7 @@ import {
 } from "../schemas/accountErrors.js";
 import type { SignIn } from "../schemas/signIn.js";
 import type { SignUp } from "../schemas/signUp.js";
+import { ObjectId } from "mongodb";
 
 export class AccountService extends Effect.Service<AccountService>()(
   "AccountService",
@@ -55,41 +56,37 @@ export class AccountService extends Effect.Service<AccountService>()(
             salt,
           );
 
-          // MongoDB version - manual object creation instead of Account.insert.make
-          const newAccount = yield* accountRepo
-            .insertOne({
-              lastName: "",
-              firstName: "",
-              phoneNumber: null,
-              isEmailVerified: false,
-              role: "user",
-              username: signUp.username,
-              bio: null,
-              dateOfBirth: null,
-              externalUrls: null,
-              isPrivate: false,
-              profileImageUrl: null,
-              email: signUp.email,
-              passwordHash: hashedPassword,
-              passwordSalt: Redacted.make(salt),
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            })
-            .pipe(
-              Effect.catchAll(() => {
-                return Effect.fail(
-                  new ServerError({
-                    message: `Failed to create account: ${signUp.email}`,
-                  }),
-                );
-              }),
-              Effect.withSpan("AccountService.signUp.insert"),
-            );
+          const accountData = Account.make({
+            _id: AccountId.make(new ObjectId()),
+            lastName: null,
+            firstName: null,
+            phoneNumber: null,
+            username: signUp.username,
+            bio: null,
+            dateOfBirth: null,
+            externalUrls: null,
+            profileImageUrl: null,
+            email: signUp.email,
+            passwordHash: hashedPassword,
+            passwordSalt: Redacted.make(salt),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+
+          const newAccount = yield* accountRepo.insertOne(accountData).pipe(
+            Effect.catchAll(() => {
+              return Effect.fail(
+                new ServerError({
+                  message: `Failed to create account: ${signUp.email}`,
+                }),
+              );
+            }),
+            Effect.withSpan("AccountService.signUp.insert"),
+          );
 
           const emailVerificationToken =
             yield* tokenService.generateEmailVerificationToken(signUp);
 
-          // MongoDB version - manual object creation
           yield* accountVerificationService.insert({
             verificationCode: Redacted.make(emailVerificationToken),
             email: newAccount.email,
@@ -150,25 +147,30 @@ export class AccountService extends Effect.Service<AccountService>()(
           if (storedVerificationCode === decodedToken) {
             yield* accountRepo.updateByEmail(email, {
               isEmailVerified: true,
-              updatedAt: new Date(),
-            });
-            yield* accountVerificationService.updateByEmail(email, {
-              ...account,
-              isVerified: true,
-              verificationCode: Redacted.make(""),
-              updatedAt: new Date(),
             });
 
+            Redacted.unsafeWipe(account.verificationCode);
+
+            const update = yield* accountVerificationService.updateByEmail(
+              email,
+              {
+                ...account,
+                isVerified: true,
+              },
+            );
+            if (update.acknowledged && update.modifiedCount > 0) {
+              yield* accountVerificationService.deleteVerificationCodes();
+            }
             const html = yield* renderTemplate(
               "./src/templates/emailVerificationSuccess.html",
               {},
             );
             return isAFrontEndRequest
               ? yield* Effect.succeed({
-                  status: 200,
-                  message: `Email verification successful`,
-                  timestamp: yield* DateTime.now,
-                })
+                status: 200,
+                message: `Email verification successful`,
+                timestamp: yield* DateTime.now,
+              })
               : yield* Effect.succeed(html);
           }
           const html = yield* renderTemplate(
@@ -177,15 +179,16 @@ export class AccountService extends Effect.Service<AccountService>()(
           );
           return isAFrontEndRequest
             ? yield* Effect.succeed({
-                status: 407,
-                message: `The verification code is not valid`,
-                timestamp: yield* DateTime.now,
-              })
+              status: 407,
+              message: `The verification code is not valid`,
+              timestamp: yield* DateTime.now,
+            })
             : yield* Effect.succeed(html);
         }).pipe(
           Effect.catchAll(() => {
             return Effect.fail(new VerifyTokenError());
           }),
+
           Effect.withSpan("AccountService.accountVerificationToken", {
             attributes: { accountVerificationToken },
           }),
@@ -279,13 +282,13 @@ export class AccountService extends Effect.Service<AccountService>()(
                 Effect.andThen((acc) =>
                   acc.isEmailVerified
                     ? Effect.succeed({
-                        success: true,
-                        message: "Account is verified",
-                      })
+                      success: true,
+                      message: "Account is verified",
+                    })
                     : Effect.fail({
-                        success: false,
-                        message: "Account is not verified",
-                      }),
+                      success: false,
+                      message: "Account is not verified",
+                    }),
                 ),
               ),
           });
@@ -311,14 +314,14 @@ export class AccountService extends Effect.Service<AccountService>()(
             Effect.andThen((updated) =>
               updated
                 ? accountRepo.findById(_id).pipe(
-                    Effect.flatMap((maybeAccount) =>
-                      Option.match(maybeAccount, {
-                        onNone: () =>
-                          Effect.fail(new AccountNotFound({ id: _id })),
-                        onSome: (account) => Effect.succeed(account),
-                      }),
-                    ),
-                  )
+                  Effect.flatMap((maybeAccount) =>
+                    Option.match(maybeAccount, {
+                      onNone: () =>
+                        Effect.fail(new AccountNotFound({ id: _id })),
+                      onSome: (account) => Effect.succeed(account),
+                    }),
+                  ),
+                )
                 : Effect.fail(new AccountNotFound({ id: _id })),
             ),
           ),
@@ -361,7 +364,23 @@ export class AccountService extends Effect.Service<AccountService>()(
           Effect.withSpan("AccountService.getAllAccounts", {
             attributes: { accountId },
           }),
-          policyRequire("account", "read"),
+          policyRequire("account", "readAll"),
+        );
+
+      const deleteAccount = (_id: AccountId) =>
+        Effect.gen(function* () {
+          const maybeAccount = yield* accountRepo.deleteById(_id);
+          if (maybeAccount.deletedCount > 0) {
+            return { success: true, message: "Account deleted successfully" };
+          } else {
+            return { success: false, message: "Account not found" };
+          }
+        }).pipe(
+          Effect.withSpan("AccountService.deleteAccount", {
+            attributes: { _id },
+          }),
+          Effect.orDie,
+          policyRequire("account", "delete"),
         );
 
       return {
@@ -374,6 +393,7 @@ export class AccountService extends Effect.Service<AccountService>()(
         updateAccountById,
         invalidate,
         getAllAccounts,
+        deleteAccount,
       } as const;
     }),
     dependencies: [
@@ -385,4 +405,4 @@ export class AccountService extends Effect.Service<AccountService>()(
       ConfigService.Default,
     ],
   },
-) {}
+) { }

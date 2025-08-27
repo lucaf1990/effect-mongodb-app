@@ -11,28 +11,34 @@ export const AccountId = S.instanceOf(ObjectId)
 
 export type Account = S.Schema.Type<typeof Account>;
 export const Account = S.Struct({
-  _id: S.optional(AccountId),
-  firstName: S.String,
-  lastName: S.String,
+  _id: AccountId,
+  firstName: S.NullishOr(S.String),
+  lastName: S.NullishOr(S.String),
   username: S.NullOr(S.String),
-  dateOfBirth: S.NullishOr(S.Date),
+  dateOfBirth: S.NullishOr(S.DateFromString),
   phoneNumber: S.NullOr(S.String),
   profileImageUrl: S.NullishOr(S.String),
   bio: S.NullishOr(S.String),
   externalUrls: S.NullishOr(S.Array(S.String)),
-  isEmailVerified: S.NullishOr(S.Boolean),
-  isPrivate: S.NullishOr(S.Boolean),
+  isEmailVerified: S.Boolean.pipe(
+    S.propertySignature,
+    S.withConstructorDefault(() => false),
+  ),
+  isPrivate: S.Boolean.pipe(
+    S.propertySignature,
+    S.withConstructorDefault(() => false),
+  ),
   role: S.Literal("admin", "moderator", "user", "notAllowed").pipe(
-    S.annotations({
-      default: "user",
-    }),
+    S.propertySignature,
+    S.withConstructorDefault(() => "user"),
   ),
   email: Email,
-  passwordHash: Password, // Sensitive
-  passwordSalt: Password, // Sensitive
-  createdAt: S.Date,
-  updatedAt: S.Date,
+  passwordHash: Password,
+  passwordSalt: Password,
+  createdAt: S.DateFromString,
+  updatedAt: S.DateFromString,
 });
+
 export class CurrentAccount extends Context.Tag("CurrentAccount")<
   CurrentAccount,
   Account
@@ -45,7 +51,7 @@ export const AccountVerification = S.Struct({
   isSent: S.Boolean,
   verificationCode: S.Redacted(S.String),
   isVerified: S.Boolean,
-  validUntil: S.Date,
-  createdAt: S.Date,
-  updatedAt: S.Date,
+  validUntil: S.DateFromString,
+  createdAt: S.DateFromString,
+  updatedAt: S.DateFromString,
 });

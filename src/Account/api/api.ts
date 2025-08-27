@@ -148,7 +148,6 @@ export class AccountApi extends HttpApiGroup.make("people")
   )
   .add(
     HttpApiEndpoint.get("getAllAccounts", "/getAllAccounts")
-
       .middleware(Authentication)
       .setUrlParams(
         Schema.Struct({
@@ -156,13 +155,13 @@ export class AccountApi extends HttpApiGroup.make("people")
         }),
       )
       .addSuccess(Schema.Array(Account))
-      .addError(Schema.Any)
+      .addError(Forbidden)
       .annotateContext(
         OpenApi.annotations({
-          title: "Sign In",
+          title: "getAllAccounts",
           description:
-            "Signs in to an account. Returns 404 if the account does not exist or the password is incorrect.",
-          summary: "Signs in to an account",
+            "Retrieves all accounts. Requires admin or moderator role.",
+          summary: "Retrieve all accounts",
         }),
       ),
   )
@@ -171,6 +170,7 @@ export class AccountApi extends HttpApiGroup.make("people")
       .middleware(Authentication)
       .addSuccess(Account)
       .addError(AccountNotFound)
+      .addError(Forbidden)
       .annotateContext(
         OpenApi.annotations({
           title: "Get My Account",
@@ -183,6 +183,7 @@ export class AccountApi extends HttpApiGroup.make("people")
     HttpApiEndpoint.get("findById")`/${idParam}`
       .middleware(Authentication)
       .addError(AccountNotFound)
+      .addError(Forbidden)
       .addSuccess(Account)
       .annotateContext(
         OpenApi.annotations({
@@ -201,7 +202,7 @@ export class AccountApi extends HttpApiGroup.make("people")
           Account.pick(
             "firstName",
             "lastName",
-            // 'email', // TODO: Email Service first
+            "email",
             "profileImageUrl",
             "bio",
             "externalUrls",
@@ -270,6 +271,23 @@ export class AccountApi extends HttpApiGroup.make("people")
           description:
             "Reissues access and refresh tokens using the refresh token. Must be logged in to use.",
           summary: "Reissue Tokens",
+        }),
+      ),
+  )
+  .add(
+    HttpApiEndpoint.del("delete")`/${idParam}`
+      .middleware(Authentication)
+      .addError(AccountNotFound)
+      .addError(Forbidden)
+      .addSuccess(
+        Schema.Struct({ success: Schema.Boolean, message: Schema.String }),
+      )
+      .annotateContext(
+        OpenApi.annotations({
+          title: "Delete Account",
+          description:
+            "Deletes an account. You cannot delete other people's accounts. Must be logged in to use. Admins can delete other people's accounts.",
+          summary: "Find an account by id",
         }),
       ),
   )

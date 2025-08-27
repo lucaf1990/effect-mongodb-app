@@ -9,4 +9,4 @@ export class MainServiceApi extends HttpApi.make("MainServiceApi")
       description: `Effect TS Backend Api`,
       identifier: "Api",
     }),
-  ) { }
+  ) {}
