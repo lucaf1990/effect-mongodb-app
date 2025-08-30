@@ -4,7 +4,7 @@ import { Email } from "../../Schemas/Common/email.js";
 export type Token = typeof Token.Type;
 export const Token = S.Struct({
   iss: S.String,
-  type: S.Literal("access", "refresh"),
+  type: S.Literal("access", "refresh", "emailVerification", "invitation"),
   iat: S.Int,
   sub: Email,
   exp: S.Int,
@@ -24,5 +24,14 @@ export const RefreshTokenSchema = S.extend(
   Token,
   S.Struct({
     type: S.Literal("refresh"),
+  }),
+);
+
+export type InvitationTokenSchema = typeof InvitationTokenSchema.Type;
+export const InvitationTokenSchema = S.extend(
+  Token,
+  S.Struct({
+    type: S.Literal("invitation"),
+    role: S.optional(S.String).pipe(S.withConstructorDefault(() => "user")),
   }),
 );

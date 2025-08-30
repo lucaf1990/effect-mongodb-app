@@ -1,18 +1,20 @@
 import { DateTime, Effect, Option, pipe, Redacted } from "effect";
 
+import { Unauthorized } from "@effect/platform/HttpApiError";
+import { ObjectId } from "mongodb";
 import { policyRequire } from "../../Authentication/authorization.js";
 import { ConfigService } from "../../Configuration/configurationService.js";
 import { VerifyTokenError } from "../../Crypto/errors/tokenErrors.js";
 import { CryptoService } from "../../Crypto/services/cryptoService.js";
 import { TokenService } from "../../Crypto/services/tokenService.js";
 import { EmailService } from "../../Email/emailService.js";
+import { Role } from "../../Invitation/schemas/invitation.js";
+import { InvitationService } from "../../Invitation/service/invitationService.js";
 import { ServerError } from "../../Schemas/Common/commonError.js";
 import { Email } from "../../Schemas/Common/email.js";
 import { renderTemplate } from "../../Templates/Utils.js";
 import { AccountRepository } from "../repositories/accountRepository.js";
-import { AccountVerificationService } from "./accountVerificationService.js";
-import { AccountId } from "../schemas/account.js";
-import { Account } from "../schemas/account.js";
+import { Account, AccountId } from "../schemas/account.js";
 import {
   AccountAlreadyExists,
   AccountByEmailNotFound,
@@ -22,7 +24,7 @@ import {
 } from "../schemas/accountErrors.js";
 import type { SignIn } from "../schemas/signIn.js";
 import type { SignUp } from "../schemas/signUp.js";
-import { ObjectId } from "mongodb";
+import { AccountVerificationService } from "./accountVerificationService.js";
 
 export class AccountService extends Effect.Service<AccountService>()(
   "AccountService",
@@ -34,6 +36,7 @@ export class AccountService extends Effect.Service<AccountService>()(
       const accountVerificationService = yield* AccountVerificationService;
       const emailService = yield* EmailService;
       const configService = yield* ConfigService;
+      const invitationService = yield* InvitationService;
 
       const host = configService.host;
       const port = configService.port;
@@ -41,6 +44,18 @@ export class AccountService extends Effect.Service<AccountService>()(
       const signUp = (signUp: SignUp) => {
         const program = Effect.gen(function* () {
           yield* Effect.annotateCurrentSpan("account", signUp);
+
+          const invitation = yield* invitationService.findInvitationByEmail(
+            signUp.email,
+          );
+          if (!invitation) {
+            yield* Effect.fail(new Unauthorized());
+          }
+
+          const invitationData = yield* invitationService.verifyInvitationToken(
+            signUp.invitationToken,
+          );
+          const assignedRole = invitationData.intendedRole || Role.literals[2];
 
           const maybeAccount = yield* accountRepo.findByEmail(signUp.email);
 
@@ -58,6 +73,7 @@ export class AccountService extends Effect.Service<AccountService>()(
 
           const accountData = Account.make({
             _id: AccountId.make(new ObjectId()),
+            invitedBy: invitation.senderId,
             lastName: null,
             firstName: null,
             phoneNumber: null,
@@ -69,6 +85,7 @@ export class AccountService extends Effect.Service<AccountService>()(
             email: signUp.email,
             passwordHash: hashedPassword,
             passwordSalt: Redacted.make(salt),
+            role: assignedRole,
             createdAt: new Date(),
             updatedAt: new Date(),
           });
@@ -167,10 +184,10 @@ export class AccountService extends Effect.Service<AccountService>()(
             );
             return isAFrontEndRequest
               ? yield* Effect.succeed({
-                status: 200,
-                message: `Email verification successful`,
-                timestamp: yield* DateTime.now,
-              })
+                  status: 200,
+                  message: `Email verification successful`,
+                  timestamp: yield* DateTime.now,
+                })
               : yield* Effect.succeed(html);
           }
           const html = yield* renderTemplate(
@@ -179,10 +196,10 @@ export class AccountService extends Effect.Service<AccountService>()(
           );
           return isAFrontEndRequest
             ? yield* Effect.succeed({
-              status: 407,
-              message: `The verification code is not valid`,
-              timestamp: yield* DateTime.now,
-            })
+                status: 407,
+                message: `The verification code is not valid`,
+                timestamp: yield* DateTime.now,
+              })
             : yield* Effect.succeed(html);
         }).pipe(
           Effect.catchAll(() => {
@@ -282,13 +299,13 @@ export class AccountService extends Effect.Service<AccountService>()(
                 Effect.andThen((acc) =>
                   acc.isEmailVerified
                     ? Effect.succeed({
-                      success: true,
-                      message: "Account is verified",
-                    })
+                        success: true,
+                        message: "Account is verified",
+                      })
                     : Effect.fail({
-                      success: false,
-                      message: "Account is not verified",
-                    }),
+                        success: false,
+                        message: "Account is not verified",
+                      }),
                 ),
               ),
           });
@@ -314,14 +331,14 @@ export class AccountService extends Effect.Service<AccountService>()(
             Effect.andThen((updated) =>
               updated
                 ? accountRepo.findById(_id).pipe(
-                  Effect.flatMap((maybeAccount) =>
-                    Option.match(maybeAccount, {
-                      onNone: () =>
-                        Effect.fail(new AccountNotFound({ id: _id })),
-                      onSome: (account) => Effect.succeed(account),
-                    }),
-                  ),
-                )
+                    Effect.flatMap((maybeAccount) =>
+                      Option.match(maybeAccount, {
+                        onNone: () =>
+                          Effect.fail(new AccountNotFound({ id: _id })),
+                        onSome: (account) => Effect.succeed(account),
+                      }),
+                    ),
+                  )
                 : Effect.fail(new AccountNotFound({ id: _id })),
             ),
           ),
@@ -403,6 +420,7 @@ export class AccountService extends Effect.Service<AccountService>()(
       AccountVerificationService.Default,
       EmailService.Default,
       ConfigService.Default,
+      InvitationService.Default,
     ],
   },
-) { }
+) {}
