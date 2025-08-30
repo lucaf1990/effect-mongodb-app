@@ -1,11 +1,13 @@
 import { Redacted, Schema as S } from "effect";
 import { Email, Password } from "../../Schemas/Common/email.js";
+import { Invitation } from "../../Invitation/schemas/invitation.js";
 
 export type SignUp = typeof SignUp.Type;
 export const SignUp = S.Struct({
   email: Email,
   password: Password,
   confirmPassword: Password,
+  invitationToken: Invitation.fields.token,
   username: S.String.pipe(
     S.minLength(4),
     S.trimmed(),

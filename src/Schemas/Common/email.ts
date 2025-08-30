@@ -1,5 +1,6 @@
 import { Schema as S } from "effect";
 
+export type Email = typeof Email.Type;
 export const Email = S.NonEmptyString.pipe(
   S.trimmed(),
   S.pattern(
@@ -14,8 +15,7 @@ export const Email = S.NonEmptyString.pipe(
   S.brand("Email"),
 );
 
-export type Email = typeof Email.Type;
-
+export type Password = typeof Password.Type;
 export const Password = S.Redacted(
   S.NonEmptyString.pipe(
     S.annotations({
@@ -23,7 +23,9 @@ export const Password = S.Redacted(
       description: "A password",
       default: "$Tr0ngPsw!",
     }),
+    S.minLength(8),
+    S.pattern(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+    ),
   ),
 );
-
-export type Password = typeof Password.Type;

@@ -11,9 +11,16 @@ import {
 import type { Token } from "../schemas/token.js";
 import { Account } from "../../Account/schemas/account.js";
 import { SignUp } from "../../Account/schemas/signUp.js";
+import { Email } from "../../Schemas/Common/email.js";
+import { Role } from "../../Invitation/schemas/invitation.js";
 
 type TokenType = typeof TokenType.Type;
-const TokenType = Schema.Literal("access", "refresh", "emailVerification");
+const TokenType = Schema.Literal(
+  "access",
+  "refresh",
+  "emailVerification",
+  "invitation",
+);
 
 type TokenConfig = typeof TokenConfig.Type;
 const TokenConfig = Schema.Struct({
@@ -47,10 +54,15 @@ export class TokenService extends Effect.Service<TokenService>()(
           expirationTime: "1hour",
           errorClass: EmailVerificationTokenGenerationError,
         },
+        invitation: {
+          type: "invitation",
+          expirationTime: "7days",
+          errorClass: EmailVerificationTokenGenerationError,
+        },
       };
 
       const generateToken = (
-        target: Account | SignUp,
+        target: Account | SignUp | { email: Email },
         tokenType: TokenType,
       ) => {
         const config = tokenConfigs[tokenType];
@@ -95,10 +107,32 @@ export class TokenService extends Effect.Service<TokenService>()(
           return decoded.payload as Token;
         });
 
+      const generateInvitationToken = (target: { email: Email; role?: Role }) =>
+        Effect.gen(function* () {
+          const config = tokenConfigs["invitation"];
+
+          const token = yield* Effect.tryPromise({
+            try: () =>
+              new SignJWT({
+                type: config.type,
+                role: target.role || Role.literals[2], // Include role in token payload
+              })
+                .setProtectedHeader({ alg: "HS256" })
+                .setIssuedAt()
+                .setIssuer(host)
+                .setSubject(target.email)
+                .setExpirationTime(config.expirationTime)
+                .sign(secret),
+            catch: () => new config.errorClass(),
+          });
+          return token;
+        });
+
       return {
         generateAccessToken,
         generateRefreshToken,
         generateEmailVerificationToken,
+        generateInvitationToken,
         verifyToken,
       } as const;
     }),

@@ -1,4 +1,4 @@
-import { Context, Schema as S } from "effect";
+import { Context, Schema as S, Redacted } from "effect";
 import { ObjectId } from "mongodb";
 import { Email, Password } from "../../Schemas/Common/email.js";
 
@@ -12,6 +12,7 @@ export const AccountId = S.instanceOf(ObjectId)
 export type Account = S.Schema.Type<typeof Account>;
 export const Account = S.Struct({
   _id: AccountId,
+  invitedBy: S.optional(AccountId),
   firstName: S.NullishOr(S.String),
   lastName: S.NullishOr(S.String),
   username: S.NullOr(S.String),
@@ -37,6 +38,30 @@ export const Account = S.Struct({
   passwordSalt: Password,
   createdAt: S.DateFromString,
   updatedAt: S.DateFromString,
+}).annotations({
+  identifier: "Account",
+  examples: [
+    {
+      _id: AccountId.make(new ObjectId("64b8f8f8f8f8f8f8f8f8f8f8")),
+      invitedBy: AccountId.make(new ObjectId("64b8f8f8f8f8f8f8f8f8f8f7")),
+      firstName: "John",
+      lastName: "Doe",
+      username: "johndoe",
+      dateOfBirth: new Date("1990-01-01"),
+      phoneNumber: "123-456-7890",
+      profileImageUrl: "https://example.com/profile.jpg",
+      bio: "Software developer",
+      externalUrls: ["https://github.com/johndoe"],
+      isEmailVerified: true,
+      isPrivate: false,
+      role: "user",
+      email: Email.make("john.doe@example.com"),
+      passwordHash: Redacted.make("hashed_password"),
+      passwordSalt: Redacted.make("salt"),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  ],
 });
 
 export class CurrentAccount extends Context.Tag("CurrentAccount")<
